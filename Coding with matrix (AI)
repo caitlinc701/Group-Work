@@ -1,0 +1,52 @@
+import xarray as xr
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.cluster.hierarchy import linkage, dendrogram
+
+# Load
+t2m = xr.open_dataset('t2m_monthly.nc')
+u10 = xr.open_dataset('u10_monthly.nc')
+v10 = xr.open_dataset('v10_monthly.nc')
+
+data = xr.merge([t2m, u10, v10])
+
+# Fix longitude 0–360 → -180–180
+data["longitude"] = (((data.longitude + 180) % 360) - 180)
+data = data.sortby("longitude")
+
+# Region SOUTH AMERICA
+south_america = data.sel(latitude=slice(15, -60),
+                         longitude=slice(-90, -30))
+
+# Automatically compute seasons
+seasonal = south_america.groupby("time.season").mean("time")
+
+# Use JJA
+jja_means = seasonal.sel(season="JJA")
+
+# Stack grid to points
+stacked = jja_means.stack(points=("latitude", "longitude"))
+
+# Feature matrix: samples = grid points, features = variables
+X = np.vstack([
+    stacked["t2m"].values,
+    stacked["u10"].values,
+    stacked["v10"].values
+]).T
+
+# Drop NaN rows
+mask = np.isfinite(X).all(axis=1)
+X = X[mask]
+
+# Standardize
+mean = X.mean(axis=0)
+std = X.std(axis=0)
+X_scaled = (X - mean) / std
+
+# Dendrogram
+Z = linkage(X_scaled, method="ward")
+
+plt.figure(figsize=(10,5))
+dendrogram(Z)
+plt.title("Dendrogram - JJA - South America")
+plt.show()
