@@ -1,3 +1,14 @@
+"""
+hi guys :)
+Ive went through all the code tonight that chat gpt has given me and ive researched each bit so we know whats going on, 
+and ive added notes and links that ive found to the AI stuff so we can work it back.
+
+This code should make the dendrogram, but we will still need to add mapping stuff tommorow bc it still will not work on my laptop :(
+
+btw: Ive found out that the matrix thingy is really just chatgpt making up new words for an array, 
+so i think if we didnt call it an matrix it would be a lot less ai sounding.
+
+"""
 import xarray as xr
 import numpy as np
 import matplotlib.pyplot as plt
