@@ -1,0 +1,57 @@
+import xarray as xr
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.cluster.hierarchy import linkage, dendrogram
+
+# Load
+t2m = xr.open_dataset('t2m_monthly.nc')
+u10 = xr.open_dataset('u10_monthly.nc')
+v10 = xr.open_dataset('v10_monthly.nc')
+
+data = xr.merge([t2m, u10, v10])
+
+# Fix longitude 0–360 → -180–180
+data["longitude"] = (((data.longitude + 180) % 360) - 180)
+data = data.sortby("longitude")
+
+# Region SOUTH AMERICA
+south_america = data.sel(latitude=slice(15, -60), longitude=slice(-90, -30))
+
+# Automatically compute seasons
+seasonal = south_america.groupby("time.season").mean("time") #groups all data by season and makes averages for each season and each year
+
+# Use JJA
+jja_means = seasonal.sel(season="JJA") #selects only the seaon we want from the averaged data
+# refrence: (https://help.marine.copernicus.eu/en/articles/5704155-how-to-compute-monthly-seasonal-and-annual-averages-from-daily-mean-datasets-in-python)
+
+# Stack grid to points
+stacked = jja_means.stack(points=("latitude", "longitude")) #flattens data from a 2d map into 1d single datapoints
+
+# Feature matrix: samples = grid points, features = variables
+X = np.vstack([ stacked["t2m"].values, stacked["u10"].values, stacked["v10"].values]).T 
+#uses new flattened data to make one new single array 
+# refrence: https://www.w3resource.com/numpy/manipulation/vstack.php
+# Another reference: https://towardsdatascience.com/np-stack-how-to-stack-two-arrays-in-numpy-and-python-fc910dd2d57a/
+
+# Drop NaN rows 
+mask = np.isfinite(X).all(axis=1) 
+X = X[mask] #only keeping the data (removing the empty datapoints)
+# refrence: https://www.geeksforgeeks.org/python/how-to-remove-nan-values-from-a-given-numpy-array/
+
+# Standardize
+#as 3 variables are on very diffferent scales and use different units they must be standerdised inorder to be weighted evenly 
+mean = X.mean(axis=0)
+std = X.std(axis=0)
+X_scaled = (X - mean) / std
+# reference: https://knowledge.alteryx.com/index/s/article/Standardization-in-Cluster-Analysis-1583461087248
+# Another reference: https://www.geeksforgeeks.org/machine-learning/feature-engineering-scaling-normalization-and-standardization/
+    
+# Dendrogram
+Z = linkage(X_scaled, method="ward") #hierarchical clustering
+# reference: https://www.geeksforgeeks.org/machine-learning/hierarchical-clustering/
+
+
+plt.figure(figsize=(10,5)) #Making the Dendrogram
+dendrogram(Z)
+plt.title("Dendrogram - JJA - South America")
+plt.show()
