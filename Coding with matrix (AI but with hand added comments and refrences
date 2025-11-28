@@ -8,6 +8,19 @@ This code should make the dendrogram, but we will still need to add mapping stuf
 btw: Ive found out that the matrix thingy is really just chatgpt making up new words for an array, 
 so i think if we didnt call it an matrix it would be a lot less ai sounding.
 
+Key steps:
+1- import packages and load data
+2- merge data
+3- fix longitude
+4- select region
+5- generate seasonal averages for each year
+6- isolate relevsnt season averages
+7- flatten latitude and longitude into single datapoint
+8- stack the 3 varibles with the flattened latiude and longitude into a single array
+9- remove any data points which arent valid (empty)
+10- standerdise the variables so they have equal weight
+11- complete cluster analysis and plot dendrogram
+
 """
 import xarray as xr
 import numpy as np
